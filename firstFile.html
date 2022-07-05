@@ -1,0 +1,178 @@
+<!-- # /**
+#  * firstFile.html
+#  * COMP 3010
+#  * INSTRUCTOR : Robert Guderian
+#  *
+#  * @author Jaspreeet Singh, 7859706
+#  * @version 06,June,2022
+#  * PURPOSE: The Purpose of this assignment is to create a front end
+#  * html page for our web server api
+#  **/ -->
+<html>
+<head>
+    <script>
+        var myUser;
+        //to post the credentials entered by the user to the webserver
+        function buttonOnClick() {
+            var uname = document.getElementById("uname").value;
+            var pass = document.getElementById("pass").value;
+            myUser=uname;
+            var oReq = new XMLHttpRequest();
+            oReq.open("POST", "api/login");
+            oReq.setRequestHeader("Accept", "application/json");
+            oReq.withCredentials = true; 
+            oReq.send(uname+":"+pass); 
+            oReq.onreadystatechange=function(){
+                if (oReq.readyState === 4 && oReq.status == 200){
+                    alert(oReq.response);
+                    //this sets cookie to uname in client side
+                    document.cookie="username="+uname+"; SameSite=None; Secure";
+                    clearLoginDisplay(); 
+                    setUpTweets();
+                } 
+                else if (oReq.readyState === 4 && oReq.status == 401){
+                    alert(oReq.response);
+                    clearfields();
+                }   
+            }
+        }
+        //to clear the fielts for logout page
+        function clearfields(){
+            document.getElementById("uname").value="";
+            document.getElementById("pass").value="";
+        }
+        //to clear the login display and show the tweets page
+        function clearLoginDisplay(){
+            var login=document.getElementById("login");
+            login.style.display="none";
+          
+        }
+        //to clear the tweet Display and show the logout
+        function clearTweetDisplay(){
+            var tweetPage=document.getElementById("tweets");
+            tweetPage.style.display="none";
+        }
+        //to clear the input field
+        function clearTweetinput(){
+            document.getElementById("newPost").value=""
+        }
+        //this deletes all login page and sets up tweet page
+        function setUpTweets(){
+            var div=document.getElementById("tweets");
+            div.style.display="block";
+            var html="<label for=\"post\"><br>Post your tweet below<br></label>\
+              <input type=\"text\" id=\"newPost\" >\
+              <br><button onclick=\"onPostClick()\">Post it</button><br>";
+            var oReq = new XMLHttpRequest();
+            oReq.open("GET", "/api/tweet");
+            oReq.setRequestHeader("Accept","application/json");
+            oReq.send();
+            oReq.onreadystatechange = function() {
+                if(oReq.readyState == 4 && oReq.status == 200){
+                    tweetsData=JSON.parse(oReq.response);
+                    for(user in tweetsData){
+                        for(tweets of tweetsData[user]){
+                            html+="<p>"+ tweets+"__ tweeted by__" +user+"  ";
+                            if(user == myUser){
+                                html+="<button id=\"delete\" onclick=\"deleteOnClick(\'"+tweets+"\')\">Delete</button></p>";
+                            }
+                        }
+                        
+                    }
+                    html+="<br><br><button onclick=\"onLogoutClick()\">Logout</button><br>"
+                    div.innerHTML =  html ;
+                }
+                else if (oReq.readyState === 4 && oReq.status == 401){
+                    alert(oReq.response);
+                }  
+            }
+        }
+        //to post on click 
+        function onPostClick(){
+            var div=document.getElementById("newPost");
+            if(div.value!=""){
+                var oReq = new XMLHttpRequest();
+                oReq.open("POST", "/api/tweet");
+                oReq.setRequestHeader("Accept","application/json");
+                oReq.send(myUser+":"+div.value);
+                oReq.onreadystatechange = function() {
+                    if(oReq.readyState == 4 && oReq.status == 200){
+                        alert(oReq.response);
+                        setUpTweets();
+                        clearTweetinput();
+                    }
+                    else if(oReq.readyState == 4 && oReq.status == 401){
+                        alert(oReq.response);
+                    }
+                }
+            }
+            else{
+                alert("YOU HAVE THE TWEET LORD ANGRY")
+            }
+        }
+        //to logout when clicked sends xmlResponse 
+        function onLogoutClick(){
+            var oReq = new XMLHttpRequest();
+            oReq.open("DELETE", "/api/login");
+            oReq.setRequestHeader("Accept","application/json");
+            oReq.send();
+            oReq.onreadystatechange = function() {
+                if(oReq.readyState == 4 && oReq.status == 200){
+                    alert(oReq.response);
+                    document.cookie="username=; SameSite=None; Secure";
+                    clearTweetDisplay();
+                    var div=document.getElementById("login");
+                    div.style.display="block";
+                    clearfields();
+                }
+                else if(oReq.readyState == 4 && oReq.status == 401){
+                    alert(oReq.response);
+                }
+            }
+        }
+        //to delete the given tweet on click
+        function deleteOnClick(deleteTweet){
+            alert("Deleting Tweet");
+            var oReq = new XMLHttpRequest();
+            oReq.open("DELETE", "/api/tweet");
+            oReq.setRequestHeader("Accept","application/json");
+            oReq.send();
+            oReq.onreadystatechange = function() {
+                if(oReq.readyState == 4 && oReq.status == 200){
+                    alert(oReq.response);
+                    document.cookie="username=; SameSite=None; Secure";
+                    clearTweetDisplay();
+                    var div=document.getElementById("login");
+                    div.style.display="block";
+                    clearfields();
+                }
+                else if(oReq.readyState == 4 && oReq.status == 401){
+                    alert(oReq.response);
+                }
+            }
+        }
+        //to setUp the html on every load
+        function setup(){
+            if(document.cookie!=""){
+                myUser=document.cookie;
+                clearLoginDisplay();
+                setUpTweets();
+            }
+        }
+    </script>
+
+</head>
+    
+<body onload='setup()'>
+    <h1>3010eeter</h1>
+    <div id ="login">
+        <label for="username">Username:</label><br>
+        <input type="text" id="uname" name="uname" value=""><br>
+        <label for="password">Password:</label><br>
+        <input type="text" id="pass" name="pass" value=""><br><br>
+        <button onclick="buttonOnClick()">SUBMIT</button>
+    </div>  
+    <div id ="tweets"></div>
+</body>
+
+</html>
